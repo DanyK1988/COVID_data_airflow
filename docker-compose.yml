@@ -1,0 +1,168 @@
+
+x-airflow-common: &airflow-common
+  image: apache/airflow:2.9.1
+  environment:
+    AIRFLOW__CORE__EXECUTOR: LocalExecutor
+    AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres-airflow/airflow
+    AIRFLOW__CORE__FERNET_KEY: ""
+    AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: "true"
+    AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+  volumes:
+    - ./dags:/opt/airflow/dags
+    - ./logs:/opt/airflow/logs
+  depends_on:
+    postgres-airflow:
+      condition: service_healthy
+
+services:
+
+  # ── PostgreSQL для Airflow ──────────────────────────────────
+  postgres-airflow:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: airflow
+      POSTGRES_PASSWORD: airflow
+      POSTGRES_DB: airflow
+    volumes:
+      - postgres-airflow-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "airflow"]
+      interval: 10s
+      retries: 5
+
+  # ── PostgreSQL для Hive Metastore ───────────────────────────
+  postgres-hive:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: hive
+      POSTGRES_PASSWORD: hive
+      POSTGRES_DB: metastore
+    volumes:
+      - postgres-hive-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "hive"]
+      interval: 10s
+      retries: 5
+
+  # ── Airflow ─────────────────────────────────────────────────
+  airflow-webserver:
+    <<: *airflow-common
+    command: webserver
+    ports:
+      - "8080:8080"
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:8080/health"]
+      interval: 30s
+      retries: 5
+
+  airflow-scheduler:
+    <<: *airflow-common
+    command: scheduler
+
+  airflow-init:
+    <<: *airflow-common
+    entrypoint: /bin/bash
+    command:
+      - -c
+      - |
+        airflow db migrate &&
+        airflow users create \
+          --username admin --password admin \
+          --firstname Admin --lastname User \
+          --role Admin --email admin@example.com
+
+  # ── HDFS ────────────────────────────────────────────────────
+  namenode:
+    image: bde2020/hadoop-namenode:2.0.0-hadoop3.2.1-java8
+    hostname: namenode
+    environment:
+      CLUSTER_NAME: hdfs-cluster
+      CORE_CONF_fs_defaultFS: hdfs://namenode:9000
+    ports:
+      - "9870:9870"
+      - "9000:9000"
+    volumes:
+      - namenode-data:/hadoop/dfs/name
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:9870" ]
+      interval: 30s
+      retries: 5
+
+  datanode:
+    image: bde2020/hadoop-datanode:2.0.0-hadoop3.2.1-java8
+    hostname: datanode
+    environment:
+      CORE_CONF_fs_defaultFS: hdfs://namenode:9000
+    volumes:
+      - datanode-data:/hadoop/dfs/data
+    depends_on:
+      namenode:
+        condition: service_healthy
+
+  # ── Hive ────────────────────────────────────────────────────
+  hive-metastore:
+    image: apache/hive:4.0.0
+    hostname: hive-metastore
+    environment:
+      - SERVICE_NAME=metastore
+      - DB_DRIVER=org.postgresql.Driver
+      - SERVICE_OPTS=-Djavax.jdo.option.ConnectionURL=jdbc:postgresql://postgres-hive:5432/metastore?createDatabaseIfNotExist=true
+      # Эти переменные заставляют образ САМ запустить schematool при старте
+      - IS_RESUME=true
+    volumes:
+      - ./hive/conf/hive-site.xml:/opt/hive/conf/hive-site.xml
+      - ./lib/postgresql-42.7.11.jar:/opt/hive/lib/postgresql-jdbc.jar
+    ports:
+      - "9083:9083"
+    depends_on:
+      postgres-hive:
+        condition: service_healthy
+
+  hive-server:
+    image: apache/hive:4.0.0
+    hostname: hive-server
+    command: [ "hive", "--service", "hiveserver2" ]
+    environment:
+      HIVE_CONF_DIR: /opt/hive/conf
+      HADOOP_CONF_DIR: /opt/hadoop/etc/hadoop
+    volumes:
+      - ./hive/conf/hive-site.xml:/opt/hive/conf/hive-site.xml
+      - ./lib/postgresql-42.7.11.jar:/opt/hive/lib/postgresql-jdbc.jar
+    ports:
+      - "10000:10000"
+      - "10002:10002"
+    depends_on:
+      - hive-metastore
+
+  # ── Spark ────────────────────────────────────────────────────
+  spark-master:
+    image: apache/spark:3.5.3
+    hostname: spark-master
+    user: root
+    environment:
+      SPARK_MODE: master
+    command: ["/opt/spark/bin/spark-class", "org.apache.spark.deploy.master.Master"]
+    ports:
+      - "8090:8080"
+      - "7077:7077"
+
+  spark-worker:
+    image: apache/spark:3.5.3
+    user: root
+    environment:
+      SPARK_MODE: worker
+    command: [
+      "/opt/spark/bin/spark-class",
+      "org.apache.spark.deploy.worker.Worker",
+      "--cores", "2",
+      "--memory", "2g",
+      "spark://spark-master:7077"
+    ]
+    depends_on:
+      - spark-master
+
+volumes:
+  postgres-airflow-data:
+  postgres-hive-data:
+  namenode-data:
+  datanode-data:
