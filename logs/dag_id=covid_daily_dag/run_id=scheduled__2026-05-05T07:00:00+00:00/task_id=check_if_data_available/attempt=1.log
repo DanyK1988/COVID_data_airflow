@@ -1,0 +1,63 @@
+[2026-05-13T09:03:18.170+0000] {local_task_job_runner.py:120} INFO - ::group::Pre task execution logs
+[2026-05-13T09:03:18.202+0000] {taskinstance.py:2076} INFO - Dependencies all met for dep_context=non-requeueable deps ti=<TaskInstance: covid_daily_dag.check_if_data_available scheduled__2026-05-05T07:00:00+00:00 [queued]>
+[2026-05-13T09:03:18.214+0000] {taskinstance.py:2076} INFO - Dependencies all met for dep_context=requeueable deps ti=<TaskInstance: covid_daily_dag.check_if_data_available scheduled__2026-05-05T07:00:00+00:00 [queued]>
+[2026-05-13T09:03:18.215+0000] {taskinstance.py:2306} INFO - Starting attempt 1 of 2
+[2026-05-13T09:03:18.230+0000] {taskinstance.py:2330} INFO - Executing <Task(HttpSensor): check_if_data_available> on 2026-05-05 07:00:00+00:00
+[2026-05-13T09:03:18.265+0000] {standard_task_runner.py:63} INFO - Started process 184 to run task
+[2026-05-13T09:03:18.276+0000] {standard_task_runner.py:90} INFO - Running: ['***', 'tasks', 'run', 'covid_daily_dag', 'check_if_data_available', 'scheduled__2026-05-05T07:00:00+00:00', '--job-id', '7', '--raw', '--subdir', 'DAGS_FOLDER/covid_daily_dag.py', '--cfg-path', '/tmp/tmp6r3r9uzc']
+[2026-05-13T09:03:18.292+0000] {standard_task_runner.py:91} INFO - Job 7: Subtask check_if_data_available
+[2026-05-13T09:03:18.538+0000] {task_command.py:426} INFO - Running <TaskInstance: covid_daily_dag.check_if_data_available scheduled__2026-05-05T07:00:00+00:00 [running]> on host c47915b8a80c
+[2026-05-13T09:03:19.874+0000] {taskinstance.py:2648} INFO - Exporting env vars: AIRFLOW_CTX_DAG_EMAIL='daniilkalibera@gmail.com' AIRFLOW_CTX_DAG_OWNER='Daniil' AIRFLOW_CTX_DAG_ID='covid_daily_dag' AIRFLOW_CTX_TASK_ID='check_if_data_available' AIRFLOW_CTX_EXECUTION_DATE='2026-05-05T07:00:00+00:00' AIRFLOW_CTX_TRY_NUMBER='1' AIRFLOW_CTX_DAG_RUN_ID='scheduled__2026-05-05T07:00:00+00:00'
+[2026-05-13T09:03:19.878+0000] {taskinstance.py:430} INFO - ::endgroup::
+[2026-05-13T09:03:19.982+0000] {baseoperator.py:399} WARNING - HttpSensor.execute cannot be called outside TaskInstance!
+[2026-05-13T09:03:19.997+0000] {http.py:137} INFO - Poking: CSSEGISandData/COVID-19/refs/heads/master/csse_covid_19_data/csse_covid_19_daily_reports/05/05/2026.csv
+[2026-05-13T09:03:20.049+0000] {base.py:84} INFO - Using connection ID 'covid_api' for task execution.
+[2026-05-13T09:03:20.625+0000] {http.py:199} ERROR - HTTP error: Not Found
+[2026-05-13T09:03:20.632+0000] {http.py:200} ERROR - 404: Not Found
+[2026-05-13T09:03:20.642+0000] {taskinstance.py:441} INFO - ::group::Post task execution logs
+[2026-05-13T09:03:20.758+0000] {taskinstance.py:2865} INFO - Rescheduling task, marking task as UP_FOR_RESCHEDULE
+[2026-05-13T09:03:20.854+0000] {local_task_job_runner.py:240} INFO - Task exited with return code 0
+[2026-05-13T09:03:20.945+0000] {taskinstance.py:3498} INFO - 0 downstream tasks scheduled from follow-on schedule check
+[2026-05-13T09:03:20.948+0000] {local_task_job_runner.py:222} INFO - ::endgroup::
+[2026-05-13T09:04:21.980+0000] {local_task_job_runner.py:120} INFO - ::group::Pre task execution logs
+[2026-05-13T09:04:22.020+0000] {taskinstance.py:2076} INFO - Dependencies all met for dep_context=non-requeueable deps ti=<TaskInstance: covid_daily_dag.check_if_data_available scheduled__2026-05-05T07:00:00+00:00 [queued]>
+[2026-05-13T09:04:22.039+0000] {taskinstance.py:2076} INFO - Dependencies all met for dep_context=requeueable deps ti=<TaskInstance: covid_daily_dag.check_if_data_available scheduled__2026-05-05T07:00:00+00:00 [queued]>
+[2026-05-13T09:04:22.040+0000] {taskinstance.py:2306} INFO - Starting attempt 1 of 2
+[2026-05-13T09:04:22.075+0000] {taskinstance.py:2330} INFO - Executing <Task(HttpSensor): check_if_data_available> on 2026-05-05 07:00:00+00:00
+[2026-05-13T09:04:22.106+0000] {standard_task_runner.py:63} INFO - Started process 196 to run task
+[2026-05-13T09:04:22.115+0000] {standard_task_runner.py:90} INFO - Running: ['***', 'tasks', 'run', 'covid_daily_dag', 'check_if_data_available', 'scheduled__2026-05-05T07:00:00+00:00', '--job-id', '8', '--raw', '--subdir', 'DAGS_FOLDER/covid_daily_dag.py', '--cfg-path', '/tmp/tmpzr3rmixq']
+[2026-05-13T09:04:22.125+0000] {standard_task_runner.py:91} INFO - Job 8: Subtask check_if_data_available
+[2026-05-13T09:04:22.247+0000] {task_command.py:426} INFO - Running <TaskInstance: covid_daily_dag.check_if_data_available scheduled__2026-05-05T07:00:00+00:00 [running]> on host c47915b8a80c
+[2026-05-13T09:04:23.755+0000] {taskinstance.py:2648} INFO - Exporting env vars: AIRFLOW_CTX_DAG_EMAIL='daniilkalibera@gmail.com' AIRFLOW_CTX_DAG_OWNER='Daniil' AIRFLOW_CTX_DAG_ID='covid_daily_dag' AIRFLOW_CTX_TASK_ID='check_if_data_available' AIRFLOW_CTX_EXECUTION_DATE='2026-05-05T07:00:00+00:00' AIRFLOW_CTX_TRY_NUMBER='1' AIRFLOW_CTX_DAG_RUN_ID='scheduled__2026-05-05T07:00:00+00:00'
+[2026-05-13T09:04:23.756+0000] {taskinstance.py:430} INFO - ::endgroup::
+[2026-05-13T09:04:23.771+0000] {baseoperator.py:399} WARNING - HttpSensor.execute cannot be called outside TaskInstance!
+[2026-05-13T09:04:23.787+0000] {http.py:137} INFO - Poking: CSSEGISandData/COVID-19/refs/heads/master/csse_covid_19_data/csse_covid_19_daily_reports/05/05/2026.csv
+[2026-05-13T09:04:23.797+0000] {base.py:84} INFO - Using connection ID 'covid_api' for task execution.
+[2026-05-13T09:04:24.146+0000] {http.py:199} ERROR - HTTP error: Not Found
+[2026-05-13T09:04:24.148+0000] {http.py:200} ERROR - 404: Not Found
+[2026-05-13T09:04:24.153+0000] {taskinstance.py:441} INFO - ::group::Post task execution logs
+[2026-05-13T09:04:24.201+0000] {taskinstance.py:2865} INFO - Rescheduling task, marking task as UP_FOR_RESCHEDULE
+[2026-05-13T09:04:24.270+0000] {local_task_job_runner.py:240} INFO - Task exited with return code 0
+[2026-05-13T09:04:24.351+0000] {taskinstance.py:3498} INFO - 0 downstream tasks scheduled from follow-on schedule check
+[2026-05-13T09:04:24.353+0000] {local_task_job_runner.py:222} INFO - ::endgroup::
+[2026-05-13T09:05:25.437+0000] {local_task_job_runner.py:120} INFO - ::group::Pre task execution logs
+[2026-05-13T09:05:25.472+0000] {taskinstance.py:2076} INFO - Dependencies all met for dep_context=non-requeueable deps ti=<TaskInstance: covid_daily_dag.check_if_data_available scheduled__2026-05-05T07:00:00+00:00 [queued]>
+[2026-05-13T09:05:25.481+0000] {taskinstance.py:2076} INFO - Dependencies all met for dep_context=requeueable deps ti=<TaskInstance: covid_daily_dag.check_if_data_available scheduled__2026-05-05T07:00:00+00:00 [queued]>
+[2026-05-13T09:05:25.482+0000] {taskinstance.py:2306} INFO - Starting attempt 1 of 2
+[2026-05-13T09:05:25.493+0000] {taskinstance.py:2330} INFO - Executing <Task(HttpSensor): check_if_data_available> on 2026-05-05 07:00:00+00:00
+[2026-05-13T09:05:25.518+0000] {standard_task_runner.py:63} INFO - Started process 208 to run task
+[2026-05-13T09:05:25.522+0000] {standard_task_runner.py:90} INFO - Running: ['***', 'tasks', 'run', 'covid_daily_dag', 'check_if_data_available', 'scheduled__2026-05-05T07:00:00+00:00', '--job-id', '9', '--raw', '--subdir', 'DAGS_FOLDER/covid_daily_dag.py', '--cfg-path', '/tmp/tmpv8pmm3h1']
+[2026-05-13T09:05:25.527+0000] {standard_task_runner.py:91} INFO - Job 9: Subtask check_if_data_available
+[2026-05-13T09:05:25.580+0000] {task_command.py:426} INFO - Running <TaskInstance: covid_daily_dag.check_if_data_available scheduled__2026-05-05T07:00:00+00:00 [running]> on host c47915b8a80c
+[2026-05-13T09:05:27.249+0000] {taskinstance.py:2648} INFO - Exporting env vars: AIRFLOW_CTX_DAG_EMAIL='daniilkalibera@gmail.com' AIRFLOW_CTX_DAG_OWNER='Daniil' AIRFLOW_CTX_DAG_ID='covid_daily_dag' AIRFLOW_CTX_TASK_ID='check_if_data_available' AIRFLOW_CTX_EXECUTION_DATE='2026-05-05T07:00:00+00:00' AIRFLOW_CTX_TRY_NUMBER='1' AIRFLOW_CTX_DAG_RUN_ID='scheduled__2026-05-05T07:00:00+00:00'
+[2026-05-13T09:05:27.250+0000] {taskinstance.py:430} INFO - ::endgroup::
+[2026-05-13T09:05:27.280+0000] {baseoperator.py:399} WARNING - HttpSensor.execute cannot be called outside TaskInstance!
+[2026-05-13T09:05:27.296+0000] {http.py:137} INFO - Poking: CSSEGISandData/COVID-19/refs/heads/master/csse_covid_19_data/csse_covid_19_daily_reports/05/05/2026.csv
+[2026-05-13T09:05:27.311+0000] {base.py:84} INFO - Using connection ID 'covid_api' for task execution.
+[2026-05-13T09:05:27.739+0000] {http.py:199} ERROR - HTTP error: Not Found
+[2026-05-13T09:05:27.742+0000] {http.py:200} ERROR - 404: Not Found
+[2026-05-13T09:05:27.745+0000] {taskinstance.py:441} INFO - ::group::Post task execution logs
+[2026-05-13T09:05:27.788+0000] {taskinstance.py:2865} INFO - Rescheduling task, marking task as UP_FOR_RESCHEDULE
+[2026-05-13T09:05:27.842+0000] {local_task_job_runner.py:240} INFO - Task exited with return code 0
+[2026-05-13T09:05:27.969+0000] {taskinstance.py:3498} INFO - 0 downstream tasks scheduled from follow-on schedule check
+[2026-05-13T09:05:27.971+0000] {local_task_job_runner.py:222} INFO - ::endgroup::

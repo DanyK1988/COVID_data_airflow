@@ -2,7 +2,7 @@ import requests
 import logging
 from airflow import DAG
 from airflow.utils.trigger_rule import TriggerRule
-from datetime import datetime
+from datetime import datetime, timedelta
 from airflow.providers.http.sensors.http import HttpSensor
 from airflow.operators.python import PythonOperator, BranchPythonOperator
 from airflow.providers.apache.hdfs.hooks.webhdfs import WebHDFSHook
@@ -22,20 +22,21 @@ default_args = {
     'email_on_failure': False,
     'email_on_retry': False,
     'retries': 1,
-    'retry_delay': 60, # seconds
+    'retry_delay': timedelta(seconds=60),
     'depends_on_past': False,
-    'start_data': datetime(2026, 5, 5),
+    'start_date': datetime(2026, 5, 5),
     'end_date': datetime(2026, 5, 9)
 }
 
 def download_covid_data(**kwargs):
     conn = BaseHook.get_connection(kwargs['conn_id'])
-    url = conn.host + kwargs['endpoint'] + kwargs['exec_data'] + '.csv'
+    host = conn.host.rstrip("/")
+    url = f"{host}/{kwargs['endpoint']}{kwargs['api_date']}.csv"
     logging.info(f'Sending request to {url}')
     response = requests.get(url)
     if response.status_code == 200:
         directory = '/opt/airflow/data'
-        save_path = os.path.join(directory, f"{kwargs['exec_data']}.csv")
+        save_path = os.path.join(directory, f"{kwargs['exec_date']}.csv")
         os.makedirs(directory, exist_ok=True)
         logging.info(f'Saving data to {save_path}')
         with open(save_path, 'wb') as f:
@@ -45,12 +46,12 @@ def download_covid_data(**kwargs):
         raise ValueError(f'Unable to download data from {url}')
 
 
-def upload_to_hdfs(exec_data):
+def upload_to_hdfs(exec_date):
     hdfs_hook = WebHDFSHook(webhdfs_conn_id='hdfs_default')
 
-    local_path = f'/opt/airflow/data/{exec_data}.csv'
+    local_path = f'/opt/airflow/data/{exec_date}.csv'
     remote_dir = '/covid_data/csv'
-    remote_path = f'{remote_dir}/{exec_data}.csv'
+    remote_path = f'{remote_dir}/{exec_date}.csv'
 
     # Checking/creating folder in HDFS
     hdfs_hook.get_conn().mkdir(remote_dir)
@@ -68,21 +69,17 @@ def upload_to_hdfs(exec_data):
 
 
 def check_if_table_exists(**kwargs):
-    table = kwargs['table'].lower()
+    table = kwargs['table_name'].lower()
     conn = HiveCliHook(hive_cli_conn_id=kwargs['conn_id'])
     logging.info(f'Checking if table {table} exists')
     query = f"SHOW TABLES in default like '{table}';"
-    logging.inf('Runnind the query')
+    logging.info('Running the query')
     result = conn.run_cli(hql=query)
-    if 'OK' in result:
-        if table in result:
-            logging.info(f'Table {table} exists')
-            return 'load_to_hive'
-        else:
-            logging.info(f'Table {table} does not exist')
-            return 'create_hive_table'
-    else:
-        raise RuntimeError(f'The query {query} is not OK')
+    if table in result:
+        logging.info(f'Table {table} exists')
+        return 'load_to_hive'
+    logging.info(f'Table {table} does not exist')
+    return 'create_hive_table'
 
 
 
@@ -91,20 +88,20 @@ with DAG(
     dag_id='covid_daily_dag',
     tags=['daily', 'covid'],
     description='Covid daily data download',
-    schedule_interval='0 7 * * *',
+    schedule='0 7 * * *',
     max_active_runs=1,
-    concurrency=4,
     default_args=default_args,
     user_defined_macros={
-        'convert_data': lambda dt: dt.strftime('%m/%d/%Y'),
+        'convert_date': lambda dt: dt.strftime('%m/%d/%Y'),
     }
 ) as main_dag:
-    EXEC_DATE = '{{ convert_data(execution_data) }}'
+    API_DATE = '{{ convert_date(logical_date) }}'
+    EXEC_DATE = '{{ logical_date.strftime("%Y-%m-%d") }}'
 
     check_if_data_available = HttpSensor(
         task_id='check_if_data_available',
         http_conn_id = 'covid_api',
-        endpoint =f'{BASE_ENDPOINT}{EXEC_DATE}.csv',
+        endpoint =f'{BASE_ENDPOINT}{API_DATE}.csv',
         poke_interval=60, # try to fetch data
         timeout=600, # 10 tries, 1 each min
         soft_fail=False,
@@ -114,17 +111,18 @@ with DAG(
     download_data = PythonOperator(
         task_id='download_data',
         python_callable=download_covid_data,
-        op_args={
+        op_kwargs={
             'conn_id': 'covid_api',
             'endpoint': BASE_ENDPOINT,
-            'exec_data': EXEC_DATE
+            'api_date': API_DATE,
+            'exec_date': EXEC_DATE
         }
     )
 
     move_to_hdfs = PythonOperator(
         task_id='move_to_hdfs',
         python_callable=upload_to_hdfs,
-        op_kwargs={'exec_data': EXEC_DATE}
+        op_kwargs={'exec_date': EXEC_DATE}
     )
 
     process_data = SparkSubmitOperator(
@@ -133,7 +131,7 @@ with DAG(
         conn_id='spark_conn',
         name=f'{main_dag.dag_id}.process_data',
         application_args=[
-            '--exec_date', EXEC_DATE
+            '--exec_data', EXEC_DATE
         ]
     )
     check_if_hive_table_exists = BranchPythonOperator(

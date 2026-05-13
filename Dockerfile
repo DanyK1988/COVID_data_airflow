@@ -9,8 +9,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 USER airflow
-# Устанавливаем провайдеры. Используем constraints для 2.9.1 и Python 3.11
+# Install project Python dependencies with Airflow constraints.
+COPY requirements.txt /tmp/requirements.txt
 RUN pip install --no-cache-dir \
-    "apache-airflow-providers-apache-hdfs" \
-    "apache-airflow-providers-apache-spark" \
-    --constraint "https://raw.githubusercontent.com/apache/airflow/constraints-2.9.1/constraints-3.11.txt"
+    --constraint "https://raw.githubusercontent.com/apache/airflow/constraints-2.9.1/constraints-3.11.txt" \
+    -r /tmp/requirements.txt

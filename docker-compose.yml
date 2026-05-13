@@ -107,10 +107,10 @@ services:
     hostname: hive-metastore
     environment:
       - SERVICE_NAME=metastore
-      - DB_DRIVER=org.postgresql.Driver
+      - DB_DRIVER=postgres
       - SERVICE_OPTS=-Djavax.jdo.option.ConnectionURL=jdbc:postgresql://postgres-hive:5432/metastore?createDatabaseIfNotExist=true
-      # Эти переменные заставляют образ САМ запустить schematool при старте
-      - IS_RESUME=true
+      # Run schema init/upgrade for external Postgres metastore.
+      - IS_RESUME=false
     volumes:
       - ./hive/conf/hive-site.xml:/opt/hive/conf/hive-site.xml
       - ./lib/postgresql-42.7.11.jar:/opt/hive/lib/postgresql-jdbc.jar
@@ -123,8 +123,12 @@ services:
   hive-server:
     image: apache/hive:4.0.0
     hostname: hive-server
-    command: [ "hive", "--service", "hiveserver2" ]
     environment:
+      SERVICE_NAME: hiveserver2
+      DB_DRIVER: postgres
+      # Schema is initialized by hive-metastore service.
+      IS_RESUME: "true"
+      SERVICE_OPTS: -Djavax.jdo.option.ConnectionURL=jdbc:postgresql://postgres-hive:5432/metastore?createDatabaseIfNotExist=true
       HIVE_CONF_DIR: /opt/hive/conf
       HADOOP_CONF_DIR: /opt/hadoop/etc/hadoop
     volumes:

@@ -6,7 +6,7 @@ from pyspark.sql import Window
 
 def main(spark, exec_data):
     read_path = f'/covid_data/csv/{exec_data}.csv'
-    save_path = f'/covid_data/result/exec_data={exec_data}'
+    save_path = f'/covid_data/results/exec_date={exec_data}'
 
     w = Window.partitionBy()
 
