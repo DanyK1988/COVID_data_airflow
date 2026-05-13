@@ -1,1 +1,2 @@
 apache-airflow-providers-apache-hdfs
+apache-airflow-providers-apache-hive

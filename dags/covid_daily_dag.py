@@ -1,16 +1,20 @@
 import requests
 import logging
 from airflow import DAG
+from airflow.utils.trigger_rule import TriggerRule
 from datetime import datetime
-from airflow.ptoviders.http.sensors.http import HttpSensor
-from airflow.operators.python import PythonOperator
+from airflow.providers.http.sensors.http import HttpSensor
+from airflow.operators.python import PythonOperator, BranchPythonOperator
 from airflow.providers.apache.hdfs.hooks.webhdfs import WebHDFSHook
 from airflow.hooks.base import BaseHook
 from airflow.providers.apache.spark.operators.spark_submit import SparkSubmitOperator
+from airflow.providers.apache.hive.hooks.hive import HiveCliHook
+from airflow.providers.apache.hive.operators.hive import HiveOperator
 import os
 
 
 BASE_ENDPOINT = 'CSSEGISandData/COVID-19/refs/heads/master/csse_covid_19_data/csse_covid_19_daily_reports/'
+HIVE_TABLE = 'COVID_RESULTS'
 
 default_args = {
     'owner': 'Daniil',
@@ -20,7 +24,7 @@ default_args = {
     'retries': 1,
     'retry_delay': 60, # seconds
     'depends_on_past': False,
-    'start_data': datetime(2026, 5, 5)
+    'start_data': datetime(2026, 5, 5),
     'end_date': datetime(2026, 5, 9)
 }
 
@@ -63,12 +67,32 @@ def upload_to_hdfs(exec_data):
         os.remove(local_path)
 
 
+def check_if_table_exists(**kwargs):
+    table = kwargs['table'].lower()
+    conn = HiveCliHook(hive_cli_conn_id=kwargs['conn_id'])
+    logging.info(f'Checking if table {table} exists')
+    query = f"SHOW TABLES in default like '{table}';"
+    logging.inf('Runnind the query')
+    result = conn.run_cli(hql=query)
+    if 'OK' in result:
+        if table in result:
+            logging.info(f'Table {table} exists')
+            return 'load_to_hive'
+        else:
+            logging.info(f'Table {table} does not exist')
+            return 'create_hive_table'
+    else:
+        raise RuntimeError(f'The query {query} is not OK')
+
+
+
+
 with DAG(
     dag_id='covid_daily_dag',
     tags=['daily', 'covid'],
     description='Covid daily data download',
     schedule_interval='0 7 * * *',
-    max_active_runs=2,
+    max_active_runs=1,
     concurrency=4,
     default_args=default_args,
     user_defined_macros={
@@ -112,3 +136,40 @@ with DAG(
             '--exec_date', EXEC_DATE
         ]
     )
+    check_if_hive_table_exists = BranchPythonOperator(
+        task_id='check_if_hive_table_exists',
+        python_callable=check_if_table_exists,
+        op_kwargs={
+            'table_name': HIVE_TABLE,
+            'conn_id': 'hive_conn'
+        }
+    )
+    create_hive_table = HiveOperator(
+        task_id='create_hive_table',
+        hive_cli_conn_id='hive_conn',
+        hql="""
+        CREATE EXTERNAL TABLE IF NOT EXISTS default.{table}(
+            country_region STRING,
+            total_confirmed INT,
+            total_deaths INT,
+            fatality_ratio DOUBLE,
+            world_case_pct DOUBLE,
+            world_death_pct DOUBLE
+            )
+            PARTITIONED BY (exec_date STRING)
+            ROW FORMAT DELIMITED
+            FIELD TERMINATED BY ','
+            STORED AS TEXTFILE
+            LOCATION '/covid_data/results';
+            """.format(table=HIVE_TABLE)
+    )
+    load_to_hive = HiveOperator(
+        task_id='load_to_hive',
+        hive_cli_conn_id='hive_conn',
+        hql=f"""MSCK REPAIR TABLE default.{HIVE_TABLE};""",
+        trigger_rule=TriggerRule.ONE_SUCCESS,
+    )
+
+    check_if_data_available >> download_data >> move_to_hdfs >> process_data >> check_if_hive_table_exists
+    check_if_hive_table_exists >> [create_hive_table, load_to_hive]
+    create_hive_table >> load_to_hive
